@@ -1,0 +1,774 @@
+<html>
+
+<head>
+    <title>Stardog Demo</title>
+    <meta charset="utf-8"/>
+    <script src="js/react.min.js"></script>
+    <script src="js/react-dom.production.min.js"></script>
+    <script src="js/prop-types.js"></script>
+    <script src="js/babel.min.js"></script>
+    <script src="js/stardog.min.js"></script>
+    <script src="js/lodash.js"></script>
+    <script src="js/d3.v5.js"></script>
+    <script src="js/stardogd3.js"></script>
+
+    <script>
+        const standConn = new stardogjs.Connection({
+            username: 'admin',
+            password: 'admin',
+            endpoint: 'http://45.55.41.230:5820',
+            });
+
+        const graphQLConn = new stardogjs.Connection({
+                username: 'admin',
+                password: 'admin',
+                endpoint: 'http://45.55.41.230:5820',
+            },
+            {
+                createHeaders: ({headers}) => {
+                    headers.set('Content-Type', 'application/json');
+                    return headers;
+                }
+            }
+        );
+
+        window.onload = () => {
+            // code to create and insert database was here
+        };
+
+        var stardogd3, vizData;
+
+    </script>
+
+    <link rel="stylesheet" type="text/css" href="css/style_1.css">
+    <link rel="stylesheet" type="text/css" href="css/tabs.css">
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+    
+        const rootElement = document.getElementById('root');
+
+        class QueryEditor extends React.Component {
+            state = {queryTxt: ''};
+
+            handleClick = () => {
+                this.props.runQuery(this.state.queryTxt)
+            };
+
+            onChange = (ev) => {
+                this.setState({queryTxt: ev.target.value})
+            };
+
+            render() {
+                return (
+                    <div>
+                        <div>
+                            <textarea onChange={this.onChange} value={this.state.queryTxt} />
+                        </div>
+                        <div style={{marginTop: '5px', textAlign: 'right'}}>
+                            <button onClick={this.handleClick}>
+                                Execute Query
+                            </button>
+                        </div>
+                    </div>
+                )
+            }
+        }
+
+        QueryEditor.propTypes = {
+            runQuery: PropTypes.func.isRequired
+        };
+
+        class ResultPane extends React.Component {
+            constructor(props) {
+                super(props);
+            }
+
+            render() {
+                return (
+                    <div style={{marginTop: '20px'}}>
+                        <div>
+                            <textarea value={this.props.queryResult} />
+                        </div>
+                    </div>
+                )
+            }
+        }
+
+        ResultPane.propTypes = {
+            queryResult: PropTypes.string.isRequired
+        };
+        ResultPane.defaultProps = {
+            queryResult: ''
+        };
+
+        class AddEntity extends React.Component {
+            constructor(props) {
+                super(props);
+
+                this.error = "Please fill in entity name."
+            }
+
+            state = {
+                entityName: '',
+                showError: false,
+            };
+
+            handleEnterClick = (e) => {
+                if (e.keyCode === 13) {
+                    this.handleClick();
+                }
+            };
+
+            handleClick = () => {
+                if (this.state.entityName) {
+                    this.setState({
+                        showError: false
+                    });
+                    this.props.addEntity({
+                        entityName: this.state.entityName.trim()});
+                } else {
+                    this.setState({showError: true});
+                }
+            };
+
+            updateEntityState = (ev) => {
+                this.setState({entityName: ev.target.value});
+            };
+
+            componentDidUpdate() {
+                if (this.props.clearForm && this.state.entityName !== '') {
+                    this.setState({
+                        entityName: '',
+                    });
+                }
+            }
+
+            render() {
+                return (
+                    <div style={{paddingTop: '10px'}}>
+                        <div>Add Entity</div>
+                        <div className="consoleBorder entityForm">
+                            <div>
+                                <div className="labelColumn">Entity Name:</div>
+                                <div className="inputColumn">
+                                    <input type="text" value={this.state.entityName} onKeyDown={this.handleEnterClick} onChange={this.updateEntityState}/>
+                                </div>
+                            </div>
+                            
+                            {this.state.showError && <div className="error">{this.error}</div>}
+                            <div className="entityAddBtn">
+                                <button onClick={this.handleClick}>
+                                    Add Entity
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        }
+
+        AddEntity.propTypes = {
+            addEntity: PropTypes.func.isRequired,
+            clearForm: PropTypes.bool
+        };
+
+        class AddRelationship extends React.Component {
+            constructor(props) {
+                super(props);
+
+                this.allDataError = "Please select a 'From Entity', 'Relation', and 'To Entity'.";
+                this.sameEntity = "Please select a different 'To Entity' than the 'From Entity'.";
+
+
+                this.state = {
+                    entityOptions: [],
+                    edgeOptions: [],
+                    fromEntity: '',
+                    toEntity: '',
+                    relationship: '',
+                    error: '',
+                    showError: false,
+                    updateRelationships: false,
+                };
+            }
+
+            componentDidMount() {
+                this.getRelationships();
+            }
+
+            componentDidUpdate() {
+                if (this.props.updateRelationships) {
+                    this.getRelationships();
+                }
+            }
+
+            getRelationships() {
+                stardogjs.query.graphql.execute(graphQLConn, 'stardogDemo',
+                    'query ' +
+                    '   withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {' +
+                    '       entity {' +
+                    '           entityName: stardog_firstName' +
+                    '       }' +
+                    '   }',
+                    {
+                        "@reasoning": true
+                    }
+                ).then(({body}) => {
+                    if (body && body.data.length > 0) {
+
+                        let newOptions = [];
+                        body.data.forEach(p => {
+                            newOptions.push(<option key={`${p.entityName}`} value={`${p.entityName}`}>{`${p.entityName}`}</option>);
+                        });
+
+                        this.setState({entityOptions: newOptions})
+                    }
+
+                }).catch((err) => {
+                    return Promise.reject(err);
+                });
+
+                let queryStr = 'select ?linkType where { \n' +
+                    '    ?linkType rdfs:subPropertyOf :linkType . \n' +
+                    '}';
+                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json', {reasoning: false}).then(({body}) => {
+                    if (body && body.results && body.results.bindings && body.results.bindings.length > 0) {
+                        let newOptions = [];
+                        body.results.bindings.forEach(p => {
+                            let relationship = p.linkType.value.substring(p.linkType.value.lastIndexOf('/') + 1, p.linkType.value.length);
+                            newOptions.push(<option key={relationship} value={relationship}>{relationship}</option>);
+                        });
+
+                        this.setState({edgeOptions: newOptions})
+                    }
+                });
+            }
+
+            handleClick = () => {
+              if (!this.state.fromEntity || !this.state.toEntity || !this.state.relationship) {
+                  this.setState({
+                      error: this.allDataError,
+                      showError: true
+                  });
+              } else if (this.state.fromEntity === this.state.toEntity) {
+                  this.setState({
+                      error: this.sameEntity,
+                      showError: true
+                  });
+              } else {
+                  this.setState({
+                      error: '',
+                      showError: false
+                  });
+
+                  this.props.addRelationship({
+                      fromEntity: this.state.fromEntity,
+                      toEntity: this.state.toEntity,
+                      relationship: this.state.relationship})
+              }
+
+            };
+
+            handleFrom = (ev) => {
+                this.setState({
+                    fromEntity: `<http://stardog.com/${ev.target.value}>`
+                });
+            };
+
+            handleTo = (ev) => {
+                this.setState({
+                    toEntity: `<http://stardog.com/${ev.target.value}>`
+                });
+            };
+
+
+            handleRelationship = (ev) => {
+                this.setState({
+                    relationship: `:${ev.target.value}`
+                });
+            };
+
+            shouldComponentUpdate(nextProps, nextState) {
+                return !_.isEqual(this.state, nextState) ||
+                    this.props.updateRelationships !== nextProps.updateRelationships;
+            }
+
+            render() {
+                return (
+                    <div style={{paddingTop: '10px'}}>
+                        <div>Add Relationship</div>
+                        <div className="consoleBorder relationshipForm">
+                            <div style={{verticalAlign: 'top'}}>
+                                <div className="labelRow">From Entity:</div>
+                                <div className="inputColumn">
+                                    <select name="fromEntity" multiple className="entitySelect" onClick={this.handleFrom}>
+                                        {this.state.entityOptions}
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{verticalAlign: 'top'}}>
+                                <div className="labelRow">Relation:</div>
+                                <div className="inputColumn">
+                                    <select style={{width: '150px'}} onChange={this.handleRelationship}>
+                                        <option value="" />
+                                        {this.state.edgeOptions}
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{verticalAlign: 'top'}}>
+                                <div className="labelRow">To Entity:</div>
+                                <div className="inputColumn">
+                                    <select name="toEntity" multiple className="entitySelect" onClick={this.handleTo}>
+                                        {this.state.entityOptions}
+                                    </select>
+                                </div>
+                            </div>
+                            {this.state.showError && <div className="error">{this.state.error}</div>}
+                            <div className="entityAddBtn">
+                                <button onClick={this.handleClick}>
+                                    Add Relation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        }
+
+        AddRelationship.propTypes = {
+            addRelationship: PropTypes.func.isRequired,
+            updateRelationships: PropTypes.bool
+        };
+
+        class GraphView extends React.Component {
+            constructor(props) {
+                super(props);
+
+                this.state = {
+                    edgesLoading: false,
+                    nodesLoading: false
+                };
+
+                this.edges = [];
+                this.nodes = [];
+            }
+
+            componentDidUpdate() {
+
+                if (this.props.shouldUpdate) {
+                    this.setState({
+                        edgesLoading: true,
+                        nodesLoading: true
+                    });
+
+                    this.performQuery();
+                } else {
+                    if (!this.state.edgesLoading && !this.state.nodesLoading) {
+
+                        vizData = {
+                            nodes: this.nodes,
+                            relationships: this.edges
+                        };
+
+                        if (!stardogd3) {
+                            stardogd3 = new StardogD3('#stardogd3', {
+                                minCollision: 60,
+                                stardogData: vizData,
+                                infoPanel: false,
+                                nodeRadius: 25,
+                                relationshipColor: "blue",
+                                relationshipOpacity: .1,
+                                showRelationshipTitles: true,
+                                relationshipIcon: 'arrow',
+                                showRelationshipCurvedEdges: true,
+                                alwaysShowCurvedEdges: true,
+                            });
+                        } else {
+                            stardogd3.updateWithStardogData(vizData)
+                        }
+                    }
+                }
+            }
+
+            componentDidMount() {
+                this.setState({
+                    edgesLoading: true,
+                    nodesLoading: true
+                });
+
+                this.performQuery();
+            }
+
+            performQuery() {
+
+                let nodeQueryStr = 'query \n' +
+                    '   withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {\n' +
+                    '       entity {\n' +
+                    '           entityName: stardog_firstName,\n' +
+                    '           id @bind(to : "$entityName")\n' +
+                    '           label @bind(to : "$entityName")\n' +
+                    '       }\n' +
+                    '   }';
+
+                stardogjs.query.graphql.execute(graphQLConn, 'stardogDemo', nodeQueryStr,
+                    {
+                        "@reasoning": false
+                    }
+                ).then(({body}) => {
+
+                    this.setState({nodesLoading: false});
+
+                    if (body && body.data.length > 0) {
+                        this.nodes = body.data;
+                    }
+                }).catch((err) => {
+                    this.setState({nodesLoading: false});
+                    return Promise.reject(err);
+                });
+
+                let edgeQueryStr = 'select ?source ?target ?linkType where { \n' +
+                    '    ?linkType rdfs:subPropertyOf :linkType . \n' +
+                    '    ?s ?linkType ?t .\n' +
+                    '    ?s stardog:firstName ?sfn .\n' +
+                    '    ?t stardog:firstName ?tfn .\n' +
+                    '    BIND (?sfn AS ?source) .\n' +
+                    '    BIND (?tfn AS ?target) .\n' +
+                    '    FILTER (?linkType != :linkType) \n' +
+                    '}';
+
+                stardogjs.query.execute(standConn, 'stardogDemo', edgeQueryStr, 'application/sparql-results+json',
+                    {
+                        reasoning: this.props.useReasoning
+                    }
+                ).then(({body}) => {
+                    if (body && body.results && body.results.bindings && body.results.bindings.length > 0) {
+
+                        this.edges = [];
+
+                        if (!_.isEmpty(body.results.bindings)) {
+                            body.results.bindings.forEach(e => {
+                                this.edges.push({
+                                    source: e.source.value,
+                                    target: e.target.value,
+                                    linkType: e.linkType.value.substring(e.linkType.value.lastIndexOf('/') + 1, e.linkType.value.length),
+                                    id: `${e.source.value}_${e.linkType.value}_${e.target.value}`
+
+                                });
+                            });
+                        }
+                    }
+
+                    this.setState({edgesLoading: false});
+
+                }).catch((err) => {
+                    this.setState({edgesLoading: false});
+                    return Promise.reject(err);
+                });
+            }
+
+            shouldComponentUpdate(nextProps, nextState) {
+                return !!nextProps.shouldUpdate
+                    || !_.isEqual(this.state, nextState);
+            }
+
+            render() {
+                return (
+                    <div id='graphView'>
+                        <div id="stardogd3"/>
+                    </div>
+                )
+            }
+        }
+
+        GraphView.propTypes = {
+            shouldUpdate: PropTypes.bool,
+            useReasoning: PropTypes.bool,
+        };
+
+        GraphView.defaultProps = {
+            shouldUpdate: false,
+            useReasoning: false
+        };
+
+
+        class Body extends React.Component {
+            constructor(props) {
+                super(props);
+            }
+
+            state = {queryResult: '', response: null, clearForm: false, updateReasoning: false, reasoning: false, updateRelationships: false};
+
+            addEntity = (entity) => {
+                let queryStr = `insert data { <http://stardog.com/${entity.entityName}> stardog:entityName '${entity.entityName}' ;
+                    rdf:type :Entity ;` ;
+
+                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json').then(({body}) => {
+                    if (body) {
+                        this.setState({response: body});
+                        setTimeout(() => this.setState({response: ''}), 3000);
+                    } else {
+                        this.setState({response: {code: 'Insert Successful', message: 'Insert Successful'}});
+                        setTimeout(() => this.setState({response: '', clearForm: true}), 1000);
+                    }
+                });
+            };
+
+            addRelationship = (data) => {
+                let queryStr = `insert data { ${data.fromEntity} ${data.relationship} ${data.toEntity} }`;
+
+                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json').then(({body}) => {
+                    if (body) {
+                        this.setState({response: body});
+                        setTimeout(() => this.setState({response: ''}), 3000);
+                    } else {
+                        this.setState({response: {code: 'Insert Successful', message: 'Insert Successful'}});
+                        setTimeout(() => this.setState({response: '', clearForm: true}), 1000);
+                    }
+                });
+            };
+
+            updateReasoning = (value) => {
+                this.setState({updateReasoning: true, reasoning: value});
+            };
+
+            componentDidUpdate() {
+                if (this.state.clearForm === true) {
+                    this.setState({clearForm: false});
+                }
+
+                if (this.state.updateReasoning) {
+                    this.setState({updateReasoning: false});
+                }
+
+                if (this.state.updateRelationships) {
+                    this.setState({updateRelationships: false});
+                }
+            }
+
+            shouldComponentUpdate(nextProps, nextState) {
+                return this.props.tabIndex !== nextProps.tabIndex
+                    || this.state.response !== nextState.response
+                    || this.state.clearForm !== nextState.clearForm
+                    || this.state.updateReasoning !== nextState.updateReasoning;
+            }
+
+            render() {
+                let content = (
+                    <div className="inputBorder">
+                        <div style={{width: '70%', display: 'inline-block', height: '810px'}}>
+                            <GraphView useReasoning={this.state.reasoning}
+                                       shouldUpdate={this.state.updateRelationships || this.state.clearForm || this.state.updateReasoning}/>
+                        </div>
+                        <div style={{width: '30%', display: 'inline-block', verticalAlign: 'top', height: '810px'}}>
+                            <div className="inputBorder">
+                                <Reasoning updateReasoning={this.updateReasoning}/>
+                                <AddEntity addEntity={this.addEntity}
+                                           clearForm={this.state.clearForm || this.state.updateReasoning} />
+                                <AddRelationship
+                                    addRelationship={this.addRelationship}
+                                    updateRelationships={this.state.clearForm || this.state.updateReasoning}/>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+                return (<div>{this.state.response && <Modal response={this.state.response}/>}{content}</div>);
+            }
+        }
+
+        class Reasoning extends React.Component {
+
+            onChange = (event) => {
+                this.props.updateReasoning(event.target.checked);
+            };
+
+            render() {
+                return (
+                    <div>
+                        <div>Reasoning</div>
+                        <div className="consoleBorder entityForm">
+                            <label className="switch">
+                                <input type="checkbox" id="togBtn" onChange={this.onChange} />
+                                    <div className="slider round">
+                                        <span className="on">ON</span>
+                                        <span className="off">OFF</span>
+                                    </div>
+                            </label>
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        Reasoning.propTypes = {
+            updateReasoning: PropTypes.func.isRequired
+        };
+
+
+        class Modal extends React.Component {
+            render() {
+                return (
+                    <div id="myModal" className="modal">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <p>{this.props.response.code}</p>
+                            </div>
+                            <div className="modal-body">
+                                <p>{this.props.response.message}</p>
+                            </div>
+                        </div>
+                    </div>);
+            }
+        }
+
+        Modal.propTypes = {
+            response: PropTypes.object.isRequired
+        };
+        Modal.defaultProps = {
+            response: ''
+        };
+
+        class Console extends React.Component {
+            constructor(props) {
+                super(props);
+            }
+
+            state = {tabIndex: 0, showModal: false};
+
+            showModal = () => {
+                this.setState({ showModal: true });
+            };
+
+            hideModal = () => {
+                this.setState({ showModal: false });
+            };
+
+            render() {
+                return (
+                    <div>
+                        <Header />
+                        <div className="console">
+                            <Body tabIndex={this.state.tabIndex}/>
+                        </div>
+                        <Footer />
+                        <InfoModal show={this.state.showModal} handleClose={this.hideModal} />
+                    </div>
+                );
+            }
+        }
+
+        class Header extends React.PureComponent {
+            render() {
+                return (
+                    <div className="topbarmenu" id="home">
+                        <div className="preheader">
+                            <div className="row" id="top-navigation">
+                                <h4>RTDM RFQ Demo</h4>
+                            </div>
+                        </div>
+                    </div>    
+                            
+                );
+            }
+         }
+
+        class Footer extends React.PureComponent {
+            render() {
+                return (
+                    <div></div>
+                );
+            }
+        }
+
+        const InfoModal = ({ handleClose, show }) => {
+            const showHideClassName = show ? "modal display-block" : "modal display-none";
+
+            const graphQLCall = 'query \n' +
+                '  withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {\n' +
+                '    entity {\n' +
+                '      entityName: stardog_firstName,\n' +
+                '      id @bind(to : "$entityName")\n' +
+                '   }\n' +
+                '  }';
+
+            const sparqlCall = 'select ?source ?target ?linkType where { \n' +
+                '    ?linkType rdfs:subPropertyOf :linkType . \n' +
+                '    ?s ?linkType ?t .\n' +
+                '    ?s stardog:firstName ?sfn .\n' +
+                '    ?t stardog:firstName ?tfn .\n' +
+                '    BIND (?sfn AS ?source) .\n' +
+                '    BIND (?tfn AS ?target) .\n' +
+                '}';
+
+            return (
+                <div className={showHideClassName}>
+                    <div className="modal-main">
+                        <div className={'tab tabOn modalHeader'}>
+                            Query Information
+                        </div>
+                        <div style={{margin: '15px'}}>
+                            In order to use our data with d3, we need to query for both the nodes and edges that
+                            we want to display. We will use the latest version of stardogJS and execute both GraphQL
+                            and SPARQL queries. GraphQL is highly recommended with the use of d3 as it can return
+                            a JSON object exactly as you need it. In some instances, as for getting the edges, we will
+                            need to perform a regular SPARQL query and convert it to the JSON we want.
+
+                            <div style={{margin: '15px 0', border: '1px solid #112d36'}}>
+                                <div className={'tab modalHeader'} style={{borderBottom: '1px solid #112d36'}}>Nodes</div>
+                                <div style={{padding: `6px 12px`}}>
+                                    <div>
+                                        We use Stardog's GraphQL interface in order to pull back the list of nodes. We
+                                        get the Person's first name, last name, and their ID as an ID is needed by d3
+                                        in order to attached the edges to the specific nodes.
+                                    </div>
+                                    <div>
+                                        <pre>
+                                            <code>
+                                                {graphQLCall}
+                                            </code>
+                                        </pre>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{margin: '15px 0', border: '1px solid #112d36'}}>
+                                <div className={'tab modalHeader'} style={{borderBottom: '1px solid #112d36'}}>Edges</div>
+                                <div style={{padding: `6px 12px`}}>
+                                    <div>
+                                        We use Stardog's SPARQL interface in order to pull back the list of edges. In
+                                        the query, we get all the Predicates that are of rdfs:subPropertyOf of :linkType.
+                                        In addition, we have to create both the source and the target using the Person's
+                                        first and last name in order to create the ID that is used in the list of nodes.
+
+                                    </div>
+                                    <div>
+                                        <pre>
+                                            <code>
+                                                {sparqlCall}
+                                            </code>
+                                        </pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div style={{borderTop: '1px solid #112d36', width: '100%'}}>
+                            <div style={{margin: '10px', float: 'right'}}>
+                                <button onClick={handleClose}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        setTimeout(() => {
+            ReactDOM.render(<Console/>, rootElement);
+        }, 750);
+    </script>
+
+</body>
+
+</html>
