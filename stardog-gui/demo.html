@@ -206,21 +206,15 @@
             }
 
             getRelationships() {
-                stardogjs.query.graphql.execute(graphQLConn, 'stardogDemo',
-                    'query ' +
-                    '   withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {' +
-                    '       entity {' +
-                    '           entityName: stardog_firstName' +
-                    '       }' +
-                    '   }',
-                    {
-                        "@reasoning": true
-                    }
-                ).then(({body}) => {
-                    if (body && body.data.length > 0) {
+                let nodeQuerystr ='SELECT DISTINCT ?entityName WHERE { \n'+
+                    '?entityName ?rel ?obj . \n'+
+                    'FILTER(?obj = owl:Class) \n'+
+                '}';
+                stardogjs.query.execute(standConn, 'rtdm', nodeQuerystr, 'application/sparql-results+json', {reasoning: false}).then(({body}) => {
+                    if (body && body.results.bindings.length > 0) {
 
                         let newOptions = [];
-                        body.data.forEach(p => {
+                        body.results.bindings.forEach(p => {
                             newOptions.push(<option key={`${p.entityName}`} value={`${p.entityName}`}>{`${p.entityName}`}</option>);
                         });
 
@@ -231,10 +225,13 @@
                     return Promise.reject(err);
                 });
 
-                let queryStr = 'select ?linkType where { \n' +
-                    '    ?linkType rdfs:subPropertyOf :linkType . \n' +
-                    '}';
-                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json', {reasoning: false}).then(({body}) => {
+                let queryStr = 'select DISTINCT ?linkType where { \n'+
+                    '?obj rdfs:subClassOf ?restriction . \n'+
+                    '?obj ?lkt ?prop . \n'+
+                    'BIND (?lkt AS ?linkType) . \n'+
+                    'FILTER (?lkt = rdfs:subClassOf) \n'+
+                '}';
+                stardogjs.query.execute(standConn, 'rtdm', queryStr, 'application/sparql-results+json', {reasoning: false}).then(({body}) => {
                     if (body && body.results && body.results.bindings && body.results.bindings.length > 0) {
                         let newOptions = [];
                         body.results.bindings.forEach(p => {
@@ -404,25 +401,18 @@
 
             performQuery() {
 
-                let nodeQueryStr = 'query \n' +
-                    '   withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {\n' +
-                    '       entity {\n' +
-                    '           entityName: stardog_firstName,\n' +
-                    '           id @bind(to : "$entityName")\n' +
-                    '           label @bind(to : "$entityName")\n' +
-                    '       }\n' +
-                    '   }';
-
-                stardogjs.query.graphql.execute(graphQLConn, 'stardogDemo', nodeQueryStr,
-                    {
-                        "@reasoning": false
-                    }
-                ).then(({body}) => {
+                let nodeQuerystr ='SELECT DISTINCT ?entityName ?label ?id WHERE { \n'+
+                    '?entityName ?rel ?obj . \n'+                    
+                    'BIND (?entityName AS ?id) . \n'+
+                    'BIND (?entityName AS ?label) . \n'+
+                    'FILTER(?obj = owl:Class) . \n'+
+                '}';
+                stardogjs.query.execute(standConn, 'rtdm', nodeQuerystr, 'application/sparql-results+json', {reasoning: false}).then(({body}) => {
 
                     this.setState({nodesLoading: false});
 
-                    if (body && body.data.length > 0) {
-                        this.nodes = body.data;
+                    if (body && body.results.bindings.length > 0) {
+                        this.nodes = body.results.bindings;
                     }
                 }).catch((err) => {
                     this.setState({nodesLoading: false});
@@ -430,16 +420,15 @@
                 });
 
                 let edgeQueryStr = 'select ?source ?target ?linkType where { \n' +
-                    '    ?linkType rdfs:subPropertyOf :linkType . \n' +
-                    '    ?s ?linkType ?t .\n' +
-                    '    ?s stardog:firstName ?sfn .\n' +
-                    '    ?t stardog:firstName ?tfn .\n' +
-                    '    BIND (?sfn AS ?source) .\n' +
-                    '    BIND (?tfn AS ?target) .\n' +
-                    '    FILTER (?linkType != :linkType) \n' +
-                    '}';
+                    '?src rdfs:subClassOf ?obj . \n' +
+                    '?src ?lkt ?t . \n' +
+                    'BIND (?lkt AS ?linkType) . \n' +
+                    'BIND (?src AS ?source) . \n' +
+                    'BIND (?obj AS ?target) . \n' +
+                    'FILTER (?lkt = rdfs:subClassOf)  \n' +
+                '}';
 
-                stardogjs.query.execute(standConn, 'stardogDemo', edgeQueryStr, 'application/sparql-results+json',
+                stardogjs.query.execute(standConn, 'rtdm', edgeQueryStr, 'application/sparql-results+json',
                     {
                         reasoning: this.props.useReasoning
                     }
@@ -505,7 +494,7 @@
                 let queryStr = `insert data { <http://stardog.com/${entity.entityName}> stardog:entityName '${entity.entityName}' ;
                     rdf:type :Entity ;` ;
 
-                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json').then(({body}) => {
+                stardogjs.query.execute(standConn, 'rtdm', queryStr, 'application/sparql-results+json').then(({body}) => {
                     if (body) {
                         this.setState({response: body});
                         setTimeout(() => this.setState({response: ''}), 3000);
@@ -519,7 +508,7 @@
             addRelationship = (data) => {
                 let queryStr = `insert data { ${data.fromEntity} ${data.relationship} ${data.toEntity} }`;
 
-                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json').then(({body}) => {
+                stardogjs.query.execute(standConn, 'rtdm', queryStr, 'application/sparql-results+json').then(({body}) => {
                     if (body) {
                         this.setState({response: body});
                         setTimeout(() => this.setState({response: ''}), 3000);
@@ -686,21 +675,21 @@
         const InfoModal = ({ handleClose, show }) => {
             const showHideClassName = show ? "modal display-block" : "modal display-none";
 
-            const graphQLCall = 'query \n' +
-                '  withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {\n' +
-                '    entity {\n' +
-                '      entityName: stardog_firstName,\n' +
-                '      id @bind(to : "$entityName")\n' +
-                '   }\n' +
-                '  }';
+            const graphQLCall ='SELECT DISTINCT ?entityName ?label ?id WHERE { \n'+
+                    '?entityName ?rel ?obj . \n'+                    
+                    'BIND (?entityName AS ?id) . \n'+
+                    'BIND (?entityName AS ?label) . \n'+
+                    'FILTER(?obj = owl:Class) . \n'+
+                '}';
 
-            const sparqlCall = 'select ?source ?target ?linkType where { \n' +
-                '    ?linkType rdfs:subPropertyOf :linkType . \n' +
-                '    ?s ?linkType ?t .\n' +
-                '    ?s stardog:firstName ?sfn .\n' +
-                '    ?t stardog:firstName ?tfn .\n' +
-                '    BIND (?sfn AS ?source) .\n' +
-                '    BIND (?tfn AS ?target) .\n' +
+            const sparqlCall = 'select ?source ?target ?linkType \n' +
+                ' where { \n' +
+                    '?src rdfs:subClassOf ?obj . \n' +
+                    '?src ?lkt ?t . \n' +
+                    'BIND (?lkt AS ?linkType) . \n' +
+                    'BIND (?src AS ?source) . \n' +
+                    'BIND (?obj AS ?target) . \n' +
+                    'FILTER (?lkt = rdfs:subClassOf)  \n' +
                 '}';
 
             return (
