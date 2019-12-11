@@ -18,9 +18,9 @@ public class KafkaRFQProducer {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JSONSerializer.class.getName());
         final Producer<String, RFQ> producer = new KafkaProducer<>(props);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1; i++) {
             RFQ rfq = new RFQ();
-            rfq.setCapability("Bagging");
+            rfq.setCapability("Welding");
             ProducerRecord<String, RFQ > record = new ProducerRecord<>(topicName, rfq);
             System.out.println("Sent:"+ record);
             producer.send(record);

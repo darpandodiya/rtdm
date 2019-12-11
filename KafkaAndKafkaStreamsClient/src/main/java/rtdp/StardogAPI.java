@@ -21,7 +21,7 @@ public class StardogAPI
             api.setCapability("Bagging");
             List<String> results = api.getResults();
 
-            System.out.println(results.size());
+            System.out.println(results);
         }
         catch (Exception e)
         {
@@ -72,7 +72,8 @@ public class StardogAPI
             {
                 stringBuilder.append(line + "\n");
             }
-            return new ArrayList<String>(Arrays.asList(stringBuilder.substring(1,stringBuilder.length()-2).split(",")));
+            String returnString = stringBuilder.toString().replace("\"", "");
+            return new ArrayList<String>(Arrays.asList(returnString.substring(1,returnString.length()-2).split(",")));
         }
         catch (Exception e)
         {

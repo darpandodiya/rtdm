@@ -36,11 +36,11 @@ public class RFQMainConsumer {
         final StreamsBuilder builder = new StreamsBuilder();
         final KStream<String, RFQ> streamSource = builder.stream("marketplace", Consumed.with(Serdes.String(), rfqSerde));
         streamSource.flatMapValues((s, rfq) -> {
-            List<String> results = null;
+            List<String> results;
             api.setCapability(rfq.getCapability());
             results = api.getResults();
             for (String topic : results) {
-                if (!topic.equals(rfq.getCapability())) {
+                if (!topic.equalsIgnoreCase(rfq.getCapability())) {
                     try {
                         createTopicIfNotExists(topic);
                     } catch (ExecutionException | InterruptedException e) {
@@ -48,7 +48,11 @@ public class RFQMainConsumer {
                     }
                 }
             }
-            return results.stream().map( topic -> new RFQ(rfq,topic)).collect(Collectors.toList());
+            return results
+                    .stream()
+                    .filter(topic -> !topic.equalsIgnoreCase(rfq.getCapability()))
+                    .map(topic -> new RFQ(rfq,topic))
+                    .collect(Collectors.toList());
         }).to((s,rfq,recordContext) -> {
             System.out.println("Transferred to: " + rfq.getTranferringTopic());
             return rfq.getTranferringTopic();
@@ -77,7 +81,6 @@ public class RFQMainConsumer {
 
         ListTopicsResult listTopics = admin.listTopics();
         Set<String> names = listTopics.names().get();
-        System.out.println(names);
         boolean contains = names.contains(topic);
         if (!contains) {
             System.out.println("Creating new topic:"+ topic);
