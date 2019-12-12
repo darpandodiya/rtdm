@@ -1,0 +1,135 @@
+@prefix : <http://api.stardog.com/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix stardog: <tag:stardog:api:> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:linkType a owl:ObjectProperty .
+
+:parentOf rdfs:subPropertyOf :linkType ;
+	rdfs:subPropertyOf :linkType ;
+	owl:inverseOf :subClassOf .
+
+:siblingOf rdfs:subPropertyOf :linkType .
+
+:subClassOf rdfs:subPropertyOf :linkType ;
+	rdfs:subPropertyOf :linkType ;
+	owl:inverseOf :parentOf .
+
+:isEquivalentTo rdfs:subPropertyOf :linkType .
+
+:hasPart rdfs:subPropertyOf :linkType .
+
+:requires a owl:ObjectProperty ;
+	rdfs:subPropertyOf :linkType ;
+	owl:inverseOf :isRequiredBy .
+
+:isRequiredBy a owl:ObjectProperty ;
+	rdfs:subPropertyOf :linkType ;
+	owl:inverseOf :requires .
+
+:checkSiblingOf a <tag:stardog:api:rule:SPARQLRule> ;
+	<tag:stardog:api:rule:content> """
+	IF {
+  		    ?r a :Capability ; 
+			{ 
+				?f :parentOf ?r .
+				?f :parentOf ?o .
+				filter ( ?r != ?o )
+			} 
+			UNION
+			{ 
+				?o :isEquivalentTo ?r .
+				filter ( ?r != ?o )
+			}
+  		}
+	THEN {
+            ?r :siblingOf ?o .
+        } """ .		
+
+:checkSubClassOf a <tag:stardog:api:rule:SPARQLRule> ;
+	<tag:stardog:api:rule:content> """
+	IF {
+  		    ?r a :Capability ;
+			{ 
+				?f :parentOf ?r .
+			} 
+  		}
+	THEN {
+            ?r :subClassOf ?f .
+        } """ .					
+
+
+
+:checkEquivalentOf a <tag:stardog:api:rule:SPARQLRule> ;
+	<tag:stardog:api:rule:content> """
+	IF {
+  		    ?r a :Capability ;
+			{ 
+				?f :requires ?r .
+				?r :subClassOf ?o .
+				filter ( ?r != ?f )
+			}
+  		}
+	THEN {
+            ?r :isEquivalentTo ?f .
+        } """ .
+
+<http://stardog.com/ManufacturingCapabilities> a :Capability ;
+	:parentOf <http://stardog.com/Design> , <http://stardog.com/SurfaceFinishing> , <http://stardog.com/MaterialAdding>, <http://stardog.com/MaterialRemoving> ;
+	<tag:stardog:api:name> "ManufacturingCapabilities" .
+
+<http://stardog.com/Design> a :Capability ;
+	:parentOf <http://stardog.com/3DDesign> , <http://stardog.com/FabricDesign> , <http://stardog.com/MetalDesign> ;
+	<tag:stardog:api:name> "Design" .
+
+<http://stardog.com/SurfaceFinishing> a :Capability ;
+	:parentOf <http://stardog.com/Coating> , <http://stardog.com/Painting>, <http://stardog.com/Varnishing> ;
+	<tag:stardog:api:name> "SurfaceFinishing" .
+
+<http://stardog.com/3DDesign> a :Capability ;
+	<tag:stardog:api:name> "3DDesign" .
+
+<http://stardog.com/FabricDesign> a :Capability ;
+	<tag:stardog:api:name> "FabricDesign" .
+
+<http://stardog.com/MetalDesign> a :Capability ;
+	:hasPart <http://stardog.com/Moulding> ;
+	<tag:stardog:api:name> "MetalDesign" .
+
+<http://stardog.com/3DPrinting> a :Capability ;
+	:subClassOf <http://stardog.com/Printing> ;
+	:requires <http://stardog.com/3DDesign> ;
+	<tag:stardog:api:name> "3DPrinting" .
+
+<http://stardog.com/Coating> a :Capability ;
+	<tag:stardog:api:name> "Coating" .
+
+<http://stardog.com/Painting> a :Capability ;
+	<tag:stardog:api:name> "Painting" .
+
+<http://stardog.com/MaterialAdding> a :Capability ;
+	<tag:stardog:api:name> "MaterialAdding" .
+
+<http://stardog.com/Casting> a :Capability ;
+	:subClassOf <http://stardog.com/MaterialAdding> ;
+	<tag:stardog:api:name> "Casting" .	
+
+<http://stardog.com/Moulding> a :Capability ;
+	:subClassOf <http://stardog.com/MaterialAdding> ;
+	<tag:stardog:api:name> "Moulding" .		
+
+<http://stardog.com/MaterialRemoving> a :Capability ;
+	<tag:stardog:api:name> "MaterialRemoving" .
+
+<http://stardog.com/LaserCutting> a :Capability ;
+	:subClassOf <http://stardog.com/MaterialRemoving> ;
+	<tag:stardog:api:name> "LaserCutting" .
+
+<http://stardog.com/Machining> a :Capability ;
+	:subClassOf <http://stardog.com/MaterialRemoving> ;
+	<tag:stardog:api:name> "Machining" .
+
+<http://stardog.com/Printing> a :Capability ;
+	<tag:stardog:api:name> "Printing" .	

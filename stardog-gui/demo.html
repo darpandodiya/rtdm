@@ -206,11 +206,11 @@
             }
 
             getRelationships() {
-                stardogjs.query.graphql.execute(graphQLConn, 'stardogDemo',
+                stardogjs.query.graphql.execute(graphQLConn, 'capability',
                     'query ' +
-                    '   withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {' +
+                    '   withAliases @config(alias: {entity: "http://api.stardog.com/Capability"}) {' +
                     '       entity {' +
-                    '           entityName: stardog_firstName' +
+                    '           entityName: stardog_name' +
                     '       }' +
                     '   }',
                     {
@@ -234,7 +234,7 @@
                 let queryStr = 'select ?linkType where { \n' +
                     '    ?linkType rdfs:subPropertyOf :linkType . \n' +
                     '}';
-                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json', {reasoning: false}).then(({body}) => {
+                stardogjs.query.execute(standConn, 'capability', queryStr, 'application/sparql-results+json', {reasoning: false}).then(({body}) => {
                     if (body && body.results && body.results.bindings && body.results.bindings.length > 0) {
                         let newOptions = [];
                         body.results.bindings.forEach(p => {
@@ -405,15 +405,15 @@
             performQuery() {
 
                 let nodeQueryStr = 'query \n' +
-                    '   withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {\n' +
+                    '   withAliases @config(alias: {entity: "http://api.stardog.com/Capability"}) {\n' +
                     '       entity {\n' +
-                    '           entityName: stardog_firstName,\n' +
+                    '           entityName: stardog_name,\n' +
                     '           id @bind(to : "$entityName")\n' +
                     '           label @bind(to : "$entityName")\n' +
                     '       }\n' +
                     '   }';
 
-                stardogjs.query.graphql.execute(graphQLConn, 'stardogDemo', nodeQueryStr,
+                stardogjs.query.graphql.execute(graphQLConn, 'capability', nodeQueryStr,
                     {
                         "@reasoning": false
                     }
@@ -432,14 +432,14 @@
                 let edgeQueryStr = 'select ?source ?target ?linkType where { \n' +
                     '    ?linkType rdfs:subPropertyOf :linkType . \n' +
                     '    ?s ?linkType ?t .\n' +
-                    '    ?s stardog:firstName ?sfn .\n' +
-                    '    ?t stardog:firstName ?tfn .\n' +
+                    '    ?s stardog:name ?sfn .\n' +
+                    '    ?t stardog:name ?tfn .\n' +
                     '    BIND (?sfn AS ?source) .\n' +
                     '    BIND (?tfn AS ?target) .\n' +
                     '    FILTER (?linkType != :linkType) \n' +
                     '}';
 
-                stardogjs.query.execute(standConn, 'stardogDemo', edgeQueryStr, 'application/sparql-results+json',
+                stardogjs.query.execute(standConn, 'capability', edgeQueryStr, 'application/sparql-results+json',
                     {
                         reasoning: this.props.useReasoning
                     }
@@ -502,10 +502,10 @@
             state = {queryResult: '', response: null, clearForm: false, updateReasoning: false, reasoning: false, updateRelationships: false};
 
             addEntity = (entity) => {
-                let queryStr = `insert data { <http://stardog.com/${entity.entityName}> stardog:entityName '${entity.entityName}' ;
-                    rdf:type :Entity ;` ;
+                let queryStr = `insert data { <http://stardog.com/${entity.entityName}> a :Capability ;
+                    stardog:name '${entity.entityName}' }` ;
 
-                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json').then(({body}) => {
+                stardogjs.query.execute(standConn, 'capability', queryStr, 'application/sparql-results+json').then(({body}) => {
                     if (body) {
                         this.setState({response: body});
                         setTimeout(() => this.setState({response: ''}), 3000);
@@ -519,7 +519,7 @@
             addRelationship = (data) => {
                 let queryStr = `insert data { ${data.fromEntity} ${data.relationship} ${data.toEntity} }`;
 
-                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json').then(({body}) => {
+                stardogjs.query.execute(standConn, 'capability', queryStr, 'application/sparql-results+json').then(({body}) => {
                     if (body) {
                         this.setState({response: body});
                         setTimeout(() => this.setState({response: ''}), 3000);
@@ -687,9 +687,9 @@
             const showHideClassName = show ? "modal display-block" : "modal display-none";
 
             const graphQLCall = 'query \n' +
-                '  withAliases @config(alias: {entity: "http://api.stardog.com/Person"}) {\n' +
+                '  withAliases @config(alias: {entity: "http://api.stardog.com/Capability"}) {\n' +
                 '    entity {\n' +
-                '      entityName: stardog_firstName,\n' +
+                '      entityName: stardog_name,\n' +
                 '      id @bind(to : "$entityName")\n' +
                 '   }\n' +
                 '  }';
@@ -697,8 +697,8 @@
             const sparqlCall = 'select ?source ?target ?linkType where { \n' +
                 '    ?linkType rdfs:subPropertyOf :linkType . \n' +
                 '    ?s ?linkType ?t .\n' +
-                '    ?s stardog:firstName ?sfn .\n' +
-                '    ?t stardog:firstName ?tfn .\n' +
+                '    ?s stardog:name ?sfn .\n' +
+                '    ?t stardog:name ?tfn .\n' +
                 '    BIND (?sfn AS ?source) .\n' +
                 '    BIND (?tfn AS ?target) .\n' +
                 '}';
