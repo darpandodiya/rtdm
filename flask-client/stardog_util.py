@@ -43,5 +43,3 @@ def getTerms(input_term):
                     result_list.add(temp_out)
 
             return result_list
-
-print(getTerms("Casting"))

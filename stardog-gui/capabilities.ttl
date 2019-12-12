@@ -29,7 +29,7 @@
 	rdfs:subPropertyOf :linkType ;
 	owl:inverseOf :requires .
 
-:checkisEquivalentTo a <tag:stardog:api:rule:SPARQLRule> ;
+:checkSiblingOf a <tag:stardog:api:rule:SPARQLRule> ;
 	<tag:stardog:api:rule:content> """
 	IF {
   		    ?r a :Capability ; 
@@ -45,7 +45,7 @@
 			}
   		}
 	THEN {
-            ?r :isEquivalentTo ?o .
+            ?r :siblingOf ?o .
         } """ .		
 
 :checkSubClassOf a <tag:stardog:api:rule:SPARQLRule> ;
@@ -62,18 +62,18 @@
 
 
 
-:checkSiblingOf a <tag:stardog:api:rule:SPARQLRule> ;
+:checkEquivalentOf a <tag:stardog:api:rule:SPARQLRule> ;
 	<tag:stardog:api:rule:content> """
 	IF {
   		    ?r a :Capability ;
 			{ 
-				?f :parentOf ?r .
-				?f :isEquivalentTo ?o .
-				?o :parentOf ?c
-			} 
+				?f :requires ?r .
+				?r :subClassOf ?o .
+				filter ( ?r != ?f )
+			}
   		}
 	THEN {
-            ?r :siblingOf ?c .
+            ?r :isEquivalentTo ?f .
         } """ .
 
 <http://stardog.com/ManufacturingCapabilities> a :Capability ;
