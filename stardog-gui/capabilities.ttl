@@ -7,11 +7,15 @@
 
 :linkType a owl:ObjectProperty .
 
-:parentOf rdfs:subPropertyOf :linkType .
+:parentOf rdfs:subPropertyOf :linkType ;
+	rdfs:subPropertyOf :linkType ;
+	owl:inverseOf :subClassOf .
 
 :siblingOf rdfs:subPropertyOf :linkType .
 
-:subClassOf rdfs:subPropertyOf :linkType .
+:subClassOf rdfs:subPropertyOf :linkType ;
+	rdfs:subPropertyOf :linkType ;
+	owl:inverseOf :parentOf .
 
 :isEquivalentTo rdfs:subPropertyOf :linkType .
 
@@ -78,7 +82,6 @@
 
 <http://stardog.com/Design> a :Capability ;
 	:parentOf <http://stardog.com/3DDesign> , <http://stardog.com/FabricDesign> , <http://stardog.com/MetalDesign> ;
-	:requires <http://stardog.com/3DPrinting> ;
 	<tag:stardog:api:name> "Design" .
 
 <http://stardog.com/SurfaceFinishing> a :Capability ;
@@ -92,10 +95,12 @@
 	<tag:stardog:api:name> "FabricDesign" .
 
 <http://stardog.com/MetalDesign> a :Capability ;
+	:hasPart <http://stardog.com/Moulding> ;
 	<tag:stardog:api:name> "MetalDesign" .
 
 <http://stardog.com/3DPrinting> a :Capability ;
 	:subClassOf <http://stardog.com/Printing> ;
+	:requires <http://stardog.com/3DDesign> ;
 	<tag:stardog:api:name> "3DPrinting" .
 
 <http://stardog.com/Coating> a :Capability ;
@@ -125,3 +130,6 @@
 <http://stardog.com/Machining> a :Capability ;
 	:subClassOf <http://stardog.com/MaterialRemoving> ;
 	<tag:stardog:api:name> "Machining" .
+
+<http://stardog.com/Printing> a :Capability ;
+	<tag:stardog:api:name> "Printing" .	

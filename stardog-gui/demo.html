@@ -502,10 +502,10 @@
             state = {queryResult: '', response: null, clearForm: false, updateReasoning: false, reasoning: false, updateRelationships: false};
 
             addEntity = (entity) => {
-                let queryStr = `insert data { <http://stardog.com/${entity.entityName}> stardog:entityName '${entity.entityName}' ;
-                    rdf:type :Entity ;` ;
+                let queryStr = `insert data { <http://stardog.com/${entity.entityName}> a :Capability ;
+                    stardog:name '${entity.entityName}' }` ;
 
-                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json').then(({body}) => {
+                stardogjs.query.execute(standConn, 'capability', queryStr, 'application/sparql-results+json').then(({body}) => {
                     if (body) {
                         this.setState({response: body});
                         setTimeout(() => this.setState({response: ''}), 3000);
@@ -519,7 +519,7 @@
             addRelationship = (data) => {
                 let queryStr = `insert data { ${data.fromEntity} ${data.relationship} ${data.toEntity} }`;
 
-                stardogjs.query.execute(standConn, 'stardogDemo', queryStr, 'application/sparql-results+json').then(({body}) => {
+                stardogjs.query.execute(standConn, 'capability', queryStr, 'application/sparql-results+json').then(({body}) => {
                     if (body) {
                         this.setState({response: body});
                         setTimeout(() => this.setState({response: ''}), 3000);
