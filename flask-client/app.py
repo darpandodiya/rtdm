@@ -16,8 +16,7 @@ def hello_world():
 def topics():
     inputTerm = request.args.get('term')
     result = stardog_util.getTerms(inputTerm)
-    print(result)
-    return jsonify(result)
+    return jsonify(list(result))
 
 
 if __name__ == '__main__':
