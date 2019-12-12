@@ -1,0 +1,10 @@
+[{
+  "id": "s21323nn32jn3j324n3232",
+  "version": "2.0",
+  "operation": "REQUEST_FOR_QUOTE",
+  "description": "Phone Cover",
+  "quantity": 40,
+  "capability": "3DPrinting",
+  "deliveryTime": "14 days",
+  "additionalServices": "Protected Packaging"
+}]

@@ -39,6 +39,7 @@ public class RFQMainConsumer {
             List<String> results;
             api.setCapability(rfq.getCapability());
             results = api.getResults();
+            System.out.println(results);
             for (String topic : results) {
                 if (!topic.equalsIgnoreCase(rfq.getCapability())) {
                     try {
@@ -50,7 +51,6 @@ public class RFQMainConsumer {
             }
             return results
                     .stream()
-                    .filter(topic -> !topic.equalsIgnoreCase(rfq.getCapability()))
                     .map(topic -> new RFQ(rfq,topic))
                     .collect(Collectors.toList());
         }).to((s,rfq,recordContext) -> {

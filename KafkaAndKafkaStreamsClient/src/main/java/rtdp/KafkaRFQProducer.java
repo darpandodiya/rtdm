@@ -17,16 +17,11 @@ public class KafkaRFQProducer {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JSONSerializer.class.getName());
         final Producer<String, RFQ> producer = new KafkaProducer<>(props);
-
-        for (int i = 0; i < 1; i++) {
-            RFQ rfq = new RFQ();
-            rfq.setCapability("Welding");
-            ProducerRecord<String, RFQ > record = new ProducerRecord<>(topicName, rfq);
-            System.out.println("Sent:"+ record);
-            producer.send(record);
-            Thread.sleep(250);
-        }
+        RFQ rfq = CustomJSONParser.readJSON("E:\\NCSU drive\\Sem 3\\Real Time Data Processing\\Project\\KafkaAndKafkaStreamsClient\\src\\main\\java\\rtdp\\rfq.json");
+        ProducerRecord<String, RFQ > record = new ProducerRecord<>(topicName, rfq);
+        producer.send(record);
         producer.close();
+        System.out.println("Sent:"+ rfq);
 
     }
 }
