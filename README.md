@@ -12,3 +12,6 @@ Example of query:
 https://rtdm-flask-client.herokuapp.com/topics?term=Bagging
 
 GCP IP for Kafka Host: 35.232.69.10:9092
+
+
+Refer [here](README.txt) for more information about this project.
