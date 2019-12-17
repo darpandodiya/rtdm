@@ -82,12 +82,10 @@ The files in this folder are as follows:
 8. StardogAPI:
     This file is used to call the Stardog server API hook with the query and use the response received in the usecase
 
-### NOTE: Before starting any files, you need to install Kafka on your machine and start zookeeper server and kafka server. You can follow this guide: https://www.tutorialspoint.com/apache_kafka/apache_kafka_installation_steps.htm. In our project, we hosted kafka and zookeeper on GCP at this endpoint: 35.232.69.10:9092.
+#### NOTE: Before starting any files, you need to install Kafka on your machine and start zookeeper server and kafka server. You can follow this guide: https://www.tutorialspoint.com/apache_kafka/apache_kafka_installation_steps.htm. In our project, we hosted kafka and zookeeper on GCP at this endpoint: 35.232.69.10:9092.
 
 
-
-To start the consumer, you need to run the "RFQMainConsumer" file. You can do that by opening the whole folder in IntelliJ or Eclipse and running the main class in the file "RFQMainConsumer".
-
+``` To start the consumer, you need to run the "RFQMainConsumer" file. You can do that by opening the whole folder in IntelliJ or Eclipse and running the main class in the file "RFQMainConsumer".```
 
 
 In order to send a message on Kafka bus, you need to use KafkaAndKafkaStreamsClient/target/KafkaAndKafkaStreamsClient-0.1-jar-with-dependencies.jar along with the topic name to subscribe to and kafka server URL with the following command:
@@ -96,7 +94,7 @@ In order to send a message on Kafka bus, you need to use KafkaAndKafkaStreamsCli
 
 and it will send a RFQ accordingly.
 
-NOTE: If you want to change the stardog API hook, you can do that by specifying it in the "StardogAPI" file.
+#### NOTE: If you want to change the stardog API hook, you can do that by specifying it in the "StardogAPI" file.
 
 
 
